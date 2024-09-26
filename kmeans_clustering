@@ -1,0 +1,64 @@
+
+euclidean_distance<-function(x,y){
+  sqrt(sum((x-y)^2))
+}
+
+
+
+assign_clusters<-function(data,centroids){
+  clusters<-numeric(nrow(data))
+  
+  for(i in 1:nrow(data)){
+   
+        distances <- sapply(1:nrow(centroids), function(j) euclidean_distance(centroids[j, ], data[i, ]))
+        clusters[i]<-which.min(distances)
+  }
+  return(clusters)
+}
+
+
+
+
+update_centroids<-function(data,clusters,k){
+    centroids<-matrix(0,nrow=k,ncol=ncol(data))
+    
+    for(i in 1:k){
+      cluster_points<-data[clusters==i,]
+      centroids[i,]<-colMeans(cluster_points)
+    }
+    return(centroids)
+}
+
+
+
+
+kmeans<-function(data,k,max_iters=100,tol=1e-4)
+{
+  set.seed(42)
+  random_indices<-sample(1:nrow(data),k)
+  centroids<-data[random_indices,]
+  
+  for(iter in 1:max_iters){
+    clusters<-assign_clusters(data,centroids)
+    new_centroids<-update_centroids(data,clusters,k)
+    
+    if(max(abs(new_centroids-centroids))<tol){
+      cat("Converged after",iter,"iterations\n")
+      break
+    }
+    centroids<-new_centroids
+  }
+  return(list(centroids=centroids,clusters=clusters))
+}
+
+
+
+data(iris)
+head(iris)
+iris_data<-iris[,-5]
+kmeans_result=kmeans(iris_data,k=3)
+print(kmeans_result$centroids)
+print(kmeans_result$clusters)
+
+library(ggplot2)
+iris$cluster<-as.factor(kmeans_result$clusters)
