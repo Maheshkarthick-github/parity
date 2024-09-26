@@ -1,0 +1,85 @@
+library(e1071)
+library(ggplot2)
+
+data(iris)
+
+set.seed(123)
+
+sample_index <- sample(seq_len(nrow(iris)), size = 0.7 * nrow(iris))
+
+train_data <- iris[sample_index, ]
+test_data <- iris[-sample_index, ]
+
+dim(train_data)
+dim(test_data)
+
+nb_model <- naiveBayes(Species ~ ., data = train_data)
+print(nb_model)
+
+predictions <- predict(nb_model, test_data)
+
+confusion_matrix <- table(Predicted = predictions, Actual = test_data$Species)
+
+print(confusion_matrix)
+
+accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+print(paste("Accuracy:", accuracy))
+
+calculate_metrics <- function(conf_matrix, class) {
+  TP <- conf_matrix[class, class]  
+  FP <- sum(conf_matrix[class, ]) - TP  
+  FN <- sum(conf_matrix[, class]) - TP  
+  TN <- sum(conf_matrix) - TP - FP - FN
+  
+  # Precision
+  precision <- TP / (TP + FP)
+  
+  # Recall
+  recall <- TP / (TP + FN)
+  
+  # F1 Score
+  f1_score <- 2 * (precision * recall) / (precision + recall)
+  
+  return(c(Precision = precision, Recall = recall, F1_Score = f1_score))
+}
+
+classes <- rownames(confusion_matrix)
+metrics_list <- lapply(classes, function(class) calculate_metrics(confusion_matrix, class))
+
+metrics_df <- do.call(rbind, metrics_list)
+rownames(metrics_df) <- classes
+training_sizes <- seq(0.1, 1.0, by = 0.1)
+accuracy_results <- numeric(length(training_sizes))
+
+for (i in seq_along(training_sizes)) {
+  size <- training_sizes[i]
+  
+  sample_index <- sample(seq_len(nrow(iris)), size = size * nrow(iris))
+  train_data <- iris[sample_index, ]
+  test_data <- iris[-sample_index, ]
+  
+  nb_model <- naiveBayes(Species ~ ., data = train_data)
+  
+  predictions <- predict(nb_model, test_data)
+  
+  confusion_matrix <- table(Predicted = predictions, Actual = test_data$Species)
+  
+  accuracy <- sum(diag(confusion_matrix)) / sum(confusion_matrix)
+  
+  accuracy_results[i] <- accuracy
+}
+
+print(metrics_df)
+
+accuracy_df <- data.frame(
+  TrainingSize = training_sizes,
+  Accuracy = accuracy_results
+)
+
+ggplot(accuracy_df, aes(x = TrainingSize, y = Accuracy)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "black", size = 2) +
+  labs(title = "Accuracy Curve",
+       x = "Proportion of Training Data",
+       y = "Accuracy") +
+  theme_minimal()
