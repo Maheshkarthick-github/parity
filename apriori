@@ -1,0 +1,15 @@
+library(arules)
+library(arulesViz)
+library(RColorBrewer)
+
+file<-read.transactions("C:/Users/HP/Desktop/file.csv",format="basket",sep=",")
+inspect(file[1:5])
+
+itemFrequencyPlot(file,topN=10,type='absolute')
+
+arules::itemFrequencyPlot(file,topN=20,col=brewer.pal(8,'Pastel2'),main='Relative Item Frequency Plot',type='relative',
+                          ylab="Item Frequency(Relative)")
+rule=apriori(file,parameter=list(supp=0.001,conf=0.9))
+rule
+
+inspect(rule)
